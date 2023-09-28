@@ -1,0 +1,29 @@
+{
+  "name": "stockmsystem",
+  "version": "1.0.0",
+  "description": "Pushing notifications to users about their stocks",
+  "main": "index.js",
+  "scripts": {
+    "test": "test",
+    "server": "nodemon server.js",
+    "start": "nodemon server.js"
+  },
+  "author": "Venkata Sai Teja",
+  "license": "ISC",
+  "dependencies": {
+    "angular": "^1.8.3",
+    "axios": "^1.5.0",
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "kiteconnect": "^4.1.0",
+    "nodemon": "^3.0.1",
+    "pg": "^8.11.3",
+    "sequelize": "^6.33.0",
+    "smartapi-javascript": "^1.0.15"
+  },
+  "devDependencies": {
+    "sequelize-cli": "^6.6.1"
+  }
+}
