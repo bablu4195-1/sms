@@ -43,6 +43,7 @@ router.post('/register', async (req, res) => {
             if (match) {
                 res.status(200).send({
                     token: token,
+                    user_id: user_id[0][0].id,
                     response:"Login successful"
                 });
 

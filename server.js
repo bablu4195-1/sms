@@ -3,7 +3,6 @@ const bodyParser = require('body-parser');
 const app = express();
 const userRoutes = require('./Routes/users')
 const stockRoutes = require('./Routes/stocks');
-const kc = require('./stocks');
 const cors = require('cors');
 
 app.use(bodyParser.json());

@@ -1,25 +1,13 @@
-var KiteTicker = require("kiteconnect").KiteTicker;
 var KiteConnect = require("kiteconnect").KiteConnect;
 const { request } = require("express");
 const Sequelize = require('sequelize');
 const { get } = require("./Routes/users");
-const WebSocket = require('ws');
-
 const sequelize = new Sequelize(process.env.DATABASE_URL);
-
-
-
-
 var kc = new KiteConnect({
   api_key: process.env.KITE_API_KEY,
     login_url: `https://kite.trade/connect/login?api_key=${process.env.KITE_API_KEY}&v=3`,
 });
 
-
-
-
-var nseStocks = [];
-var  bseStocks = [];
 let access_token = ''
 
 
@@ -29,25 +17,29 @@ let generate = ()=> {
     const query = `INSERT INTO access_tokens (access_token) VALUES ('${response.access_token}')`;
     sequelize.query(query);
         access_token = response.access_token;
+        access_token = process.env.ACCESS_TOKEN;
         console.log(access_token)
+        console.log(process.env.ACCESS_TOKEN);
+        
       }
       ).catch(function (err) {
         console.log(err);
       });
+      return access_token;
     }
-    async function getAccessToken() {
-      // Get the access token from the database
-      const query = `SELECT * FROM access_tokens`;
-      const response = await sequelize.query(query);
+
+    // generate();
+    // async function getAccessToken() {
+    //   // Get the access token from the database
+    //   const query = `SELECT * FROM access_tokens`;
+    //   const response = await sequelize.query(query);
       
-      // The access token is stored in the response[0][0].access_token property
-      // get the latest access token
-      const accessToken = response[0][response[0].length - 1].access_token;
-      return accessToken;
-    }
-    
-    access_token  =  getAccessToken();
-    console.log(access_token)
+    //   // The access token is stored in the response[0][0].access_token property
+    //   // get the latest access token
+    //   const accessToken = response[0][response[0].length - 1].access_token;
+    //   return accessToken;
+    // }
+
     // function init() {
       //   // Fetch equity margins.
       //   kc.getInstruments("NSE").then(function (response) {
