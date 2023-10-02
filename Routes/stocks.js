@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const database = require('../config/database');
 const auth = require('../auth');
 const kc = require('../stocks');
 const ticker = require('../websocket');
 const Sequelize = require('sequelize');
 const sequelize = new Sequelize(process.env.DATABASE_URL);
+
+
+
 let stock_ticks = [];
 async function getAllTokens() {
     try {
@@ -49,17 +51,32 @@ ticker.on("reconnecting", function (reconnect_interval, reconnections) {
     });
 
   function onTicks(ticks) {
-    console.log("Ticks", ticks);
+    // console.log("Ticks", ticks);
     stock_ticks = ticks;
   }
 
   console.log("Stock ticks",stock_ticks);
-  
 //   function subscribe() {
 //     var items = [259849,249408004];
 //     ticker.subscribe(items);
 //     ticker.setMode(ticker.modeFull, items);
 //   }
+
+router.post('/addprice',auth,async (req,res)=>{
+   try {
+    const user_id = req.body.user_id;
+    const instrument_token = req.body.instrument_token;
+    const last_price = req.body.price;
+    //insert the data into intrument_tokens table
+    const query = `UPDATE instrument_tokens SET alert_price = ${last_price} WHERE instrument_token = '${instrument_token}';`;
+    const response = await sequelize.query(query);
+    res.status(200).send(response);
+   }
+    catch(error){
+         console.log(error);
+         res.status(500).send(error);
+    }
+})
 
 
 router.get('/nse', auth, async (req, res) => {
@@ -115,6 +132,34 @@ router.post('/selectedItems',auth, async (req, res) => {
 
     } catch(error) {
         res.status(500).send(error);
+    }
+});
+
+router.post('/getfirebaseTokens',auth,async(req,res)=>{
+    try{
+        const token = req.body.token;
+        const query1 = `SELECT COUNT(*) FROM firebase_tokens WHERE token = '${token}'`;
+        sequelize.query(query1).then(function(response){
+            if(response[0][0]['COUNT(*)'] == 0){
+                const query2 = `INSERT INTO firebase_tokens (token) VALUES ('${token}')`;
+                sequelize.query(query2);
+            }
+        })
+        res.status(200).send("Token added");
+    } catch(error){
+        console.log(error);
+    }
+})
+
+router.get('/alertedPrices/:id',auth,async (req, res) => {
+    try {
+        const id = req.params.id;
+        const query = `SELECT * FROM instrument_tokens WHERE user_id='${id}'`;
+        const response = await sequelize.query(query);
+        const result = response[0];
+        res.status(200).send(result);
+    } catch(error) {
+        console.log(error);
     }
 });
 

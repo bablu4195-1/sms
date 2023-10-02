@@ -3,6 +3,7 @@ const { request } = require("express");
 const Sequelize = require('sequelize');
 const { get } = require("./Routes/users");
 const sequelize = new Sequelize(process.env.DATABASE_URL);
+
 var kc = new KiteConnect({
   api_key: process.env.KITE_API_KEY,
     login_url: `https://kite.trade/connect/login?api_key=${process.env.KITE_API_KEY}&v=3`,
@@ -64,5 +65,7 @@ let generate = ()=> {
 // ws.on('message', function incoming(data) {
 //   console.log(data);
 // });
+
+
               
 module.exports = kc;
