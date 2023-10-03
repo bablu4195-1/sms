@@ -130,9 +130,12 @@ function onTicks(ticks) {
 router.post('/notification', async (req, res) => {
     // Get the token from the request body
     const token =  req.body.token;
-    
+      let data = {
+        title: 'SMS',
+        alert_price: 'Welcome to the Stock Message System',
+      }
     // Send the notification
-    sendingNotification(token);
+    sendingNotification(data);
   
     // Send a response to the client
     res.status(200).send('Notification sent');
