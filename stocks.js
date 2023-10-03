@@ -18,10 +18,7 @@ let generate = ()=> {
     const query = `INSERT INTO access_tokens (access_token) VALUES ('${response.access_token}')`;
     sequelize.query(query);
         access_token = response.access_token;
-        access_token = process.env.ACCESS_TOKEN;
-        console.log(access_token)
-        console.log(process.env.ACCESS_TOKEN);
-        
+        console.log(access_token);
       }
       ).catch(function (err) {
         console.log(err);

@@ -135,17 +135,31 @@ router.post('/selectedItems',auth, async (req, res) => {
     }
 });
 
-router.post('/getfirebaseTokens',auth,async(req,res)=>{
+router.post('/insertfirebaseTokens',auth,async(req,res)=>{
+    // try{
+    //     const token = req.body.token;
+    //     const query1 = `SELECT COUNT(*) FROM firebase_tokens WHERE token = '${token}'`;
+    //     sequelize.query(query1).then(function(response){
+    //         if(response[0][0]['COUNT(*)'] == 0){
+    //             const query2 = `INSERT INTO firebase_tokens (token) VALUES ('${token}')`;
+    //             sequelize.query(query2);
+    //         }
+    //     })
+    //     res.status(200).send("Token added");
+    // } catch(error){
+    //     console.log(error);
+    // }
+    //store the token in the database if the token is not present
     try{
         const token = req.body.token;
+        const user_id = req.body.user_id;
         const query1 = `SELECT COUNT(*) FROM firebase_tokens WHERE token = '${token}'`;
-        sequelize.query(query1).then(function(response){
-            if(response[0][0]['COUNT(*)'] == 0){
-                const query2 = `INSERT INTO firebase_tokens (token) VALUES ('${token}')`;
-                sequelize.query(query2);
-            }
-        })
-        res.status(200).send("Token added");
+        const response = await sequelize.query(query1);
+        if(response[0][0]['COUNT(*)'] == 0){
+            const query2 = `INSERT INTO firebase_tokens (token,user_id) VALUES ('${token}','${user_id}')`;
+            sequelize.query(query2);
+        }
+        res.status(200).send({message: "Token added"});
     } catch(error){
         console.log(error);
     }

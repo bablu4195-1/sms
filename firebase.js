@@ -78,90 +78,172 @@ const { Sequelize } = require('sequelize');
 const sequelize = new Sequelize(process.env.DATABASE_URL);
 const express = require('express');
 const router = express.Router();
-const ticker = require('./websocket');
-let stock_ticks = [];
+
 // Initialize the Firebase Admin SDK
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+    credential: admin.credential.cert(serviceAccount),
 });
 
-function sendingNotification(data) {
+function sendingNotification(datatoken) {
 
     // Create a new message object
     const message = {
-      notification: {
-        title: data.title,
-        body: data.alert_price,
-      },
-      // The registration token of the device to send the notification to
-      token: datatoken,
+        notification: {
+            title: 'Thank you for chosing us',
+            body: 'Welcome to Stock Messaging System',
+        },
+        // The registration token of the device to send the notification to
+        token: datatoken,
     };
-    
+
     // Send the push notification
     admin.messaging().send(message)
-      .then((response) => {
-        console.log('Push notification sent successfully!',response);
-      })
-      .catch((error) => {
-        console.log('Error sending push notification:', error);
-      });
-}
-
-// //get the tokens from the database
-const sendANotification = async () => {
-  //get the token from the database
-    const query = `SELECT * FROM firebase_tokens`;
-    sequelize.query(query).then((response) => {
-        const token = response[0][0].token;
-        return token;
-    }).catch((error) => {
-        console.log(error);
+        .then((response) => {
+            console.log('Push notification sent successfully!', response);
+        })
+        .catch((error) => {
+            console.log('Error sending push notification:', error);
         });
 }
 
-ticker.connect();
-ticker.on("connect", sendANotification);
-ticker.on("ticks", onTicks);
-function onTicks(ticks) {
-  // console.log("Ticks", ticks);
-  stock_ticks = ticks;
+function sendingNotifications(data, datatoken) {
+
+    // Create a new message object
+    const message = {
+        notification: {
+            title: data.title,
+            body: data.alert_price,
+        },
+        // The registration token of the device to send the notification to
+        token: datatoken,
+    };
+
+    // Send the push notification
+    admin.messaging().send(message)
+        .then((response) => {
+            console.log('Push notification sent successfully!', response);
+        })
+        .catch((error) => {
+            console.log('Error sending push notification:', error);
+        });
 }
+// //get the tokens from the database
+const sendANotification = async () => {
+    //get the token from the database
+    const query = `SELECT * FROM firebase_tokens`;
+    sequelize.query(query).then((response) => {
+        const token = response[0][0].token;
+        sendingNotification(token);
+        return token;
+    }).catch((error) => {
+        console.log(error);
+    });
+}
+
+
 // Route to send a notification to the client
 router.post('/notification', async (req, res) => {
     // Get the token from the request body
-    const token =  req.body.token;
-      let data = {
-        title: 'SMS',
-        alert_price: 'Welcome to the Stock Message System',
-      }
+    const token = req.body.token;
+
     // Send the notification
-    sendingNotification(data);
-  
+    await sendANotification();
+    sendingNotification(token);
+
     // Send a response to the client
     res.status(200).send('Notification sent');
-  });
+});
 
-const compareAndSend = async () => {
-    for(let i=0;i<stock_ticks.length;i++){
-        const query = `SELECT * FROM instrument_tokens WHERE instrument_token='${stock_ticks[i].instrument_token}'`;
-        const response = await sequelize.query(query);
-        const result = response[0];
-        if(stock_ticks[i].last_price <= result[0].alert_price){
-            // if(stock_ticks[i].last_price <= 100){
-            //send notification
-            const query2 = `SELECT * FROM firebase_tokens`;
-            const response2 = await sequelize.query(query2);
-            const result2 = response2[0];
-            console.log(result2);
-            for(let i=0;i<stock_ticks.length;i++){
-                let data = {
-                    title: result,
-                    alert_price: stock_ticks[i]
-                }
-                sendingNotification(data);
-            }
+const ticker = require('./websocket')
+let stock_ticks = [];
+ticker.connect();
+ticker.on("connect", getAllTokens);
+ticker.on("ticks", onTicks);
+async function compareAndSend(stock_ticks) {
+    let items = [];
+    let getItems = []
+    items = stock_ticks;
+    // console.log("items", items);
+    //get instrument tokens from the items
+    items.map((items)=>{
+        if(!isNaN(items.instrument_token)){
+            getItems.push(items.instrument_token);
         }
+    })
+    console.log("getItems", getItems);
+    for (let i = 0; i < getItems.length; i++) {
+      if(!isNaN(getItems[i])) {
+      const query = `SELECT * FROM instrument_tokens WHERE instrument_token='${getItems[i]}'`;
+      const response = await sequelize.query(query);
+      const result = response[0];
+      
+      // Send notification
+      if (result !== undefined && result[0].alert_price !== null) {
+
+        if (items[i].last_price <= result[0].alert_price) {
+          const query2 = `SELECT * FROM firebase_tokens`;
+          const response2 = await sequelize.query(query2);
+          const result2 = response2[0];
+          console.log(result2);
+          for (let i = 0; i < result2.length; i++) {
+            const data = {
+              title: 'Stock Alert',
+              alert_price: result[0].alert_price,
+            };
+            console.log("alert");
+            sendingNotifications(data, result2[i].token);
+          }
+        }
+      }
+    }
+  }
+}
+  
+  
+async function getAllTokens() {
+    try {
+        let items = [];
+        const query = `SELECT * FROM instrument_tokens`;
+        const response = await sequelize.query(query);
+        for (let i = 0; i < response[0].length; i++) {
+            items.push(response[0][i].instrument_token);
+        }
+        //converting all the elements in the array to numbers
+        items = items.map(Number);
+        ticker.subscribe(items);
+        onTicks(items);
+        ticker.setMode(ticker.modeFull, items);
+    }
+    catch (error) {
+        console.log(error);
     }
 }
-compareAndSend();
+
+
+
+ticker.on("noreconnect", function () {
+    console.log("noreconnect");
+});
+
+ticker.on("reconnecting", function (reconnect_interval, reconnections) {
+    console.log(
+        "Reconnecting: attempt - ",
+        reconnections,
+        " innterval - ",
+        reconnect_interval
+    );
+    // if (reconnections >= 10) {
+    //     ticker.disconnect();
+    // }
+});
+
+function onTicks(ticks) {
+    // console.log("Ticks", ticks);
+    stock_ticks = ticks;
+    // console.log("Stock ticks", stock_ticks);
+    // console.log(stock_ticks);
+    compareAndSend(stock_ticks);
+}
+
+
 module.exports = router;
