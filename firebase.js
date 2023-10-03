@@ -78,6 +78,7 @@ const { Sequelize } = require('sequelize');
 const sequelize = new Sequelize(process.env.DATABASE_URL);
 const express = require('express');
 const router = express.Router();
+const kc = require('./stocks');
 
 // Initialize the Firebase Admin SDK
 admin.initializeApp({
@@ -107,12 +108,10 @@ function sendingNotification(datatoken) {
 }
 
 function sendingNotifications(data, datatoken) {
-
-    // Create a new message object
     const message = {
         notification: {
             title: data.title,
-            body: data.alert_price,
+            body: `Stock is ${data.trading_symbol} and  Price is ${data.alert_price}`,
         },
         // The registration token of the device to send the notification to
         token: datatoken,
@@ -154,52 +153,57 @@ router.post('/notification', async (req, res) => {
     res.status(200).send('Notification sent');
 });
 
-const ticker = require('./websocket')
+const ticker = require('./websocket');
+
+
 let stock_ticks = [];
 ticker.connect();
 ticker.on("connect", getAllTokens);
 ticker.on("ticks", onTicks);
+
 async function compareAndSend(stock_ticks) {
     let items = [];
     let getItems = []
     items = stock_ticks;
     // console.log("items", items);
+    // console.log("items", items);
     //get instrument tokens from the items
-    items.map((items)=>{
-        if(!isNaN(items.instrument_token)){
+    items.map((items) => {
+        if (!isNaN(items.instrument_token)) {
             getItems.push(items.instrument_token);
         }
     })
-    console.log("getItems", getItems);
     for (let i = 0; i < getItems.length; i++) {
-      if(!isNaN(getItems[i])) {
-      const query = `SELECT * FROM instrument_tokens WHERE instrument_token='${getItems[i]}'`;
-      const response = await sequelize.query(query);
-      const result = response[0];
-      
-      // Send notification
-      if (result !== undefined && result[0].alert_price !== null) {
+        if (!isNaN(getItems[i])) {
+            const query = `SELECT * FROM instrument_tokens WHERE instrument_token='${getItems[i]}'`;
+            const response = await sequelize.query(query);
+            const result = response[0];
 
-        if (items[i].last_price <= result[0].alert_price) {
-          const query2 = `SELECT * FROM firebase_tokens`;
-          const response2 = await sequelize.query(query2);
-          const result2 = response2[0];
-          console.log(result2);
-          for (let i = 0; i < result2.length; i++) {
-            const data = {
-              title: 'Stock Alert',
-              alert_price: result[0].alert_price,
-            };
-            console.log("alert");
-            sendingNotifications(data, result2[i].token);
-          }
+            // Send notification
+            if (result !== undefined && result[0].alert_price !== null) {
+
+                if (items[i].last_price >= result[0].alert_price) {
+                    const query2 = `SELECT * FROM firebase_tokens`;
+                    const response2 = await sequelize.query(query2);
+                    const result2 = response2[0];
+                    console.log(result2);
+                    for (let i = 0; i < result2.length; i++) {
+                        const data = {
+                            title: "Stock Alert",
+                            alert_price: result[0].alert_price,
+                            instrument_token: getItems[i],
+                            trading_symbol: result[0].trading_symbol,
+                        };
+                        // console.log("alert");
+                        sendingNotifications(data, result2[i].token);
+                    }
+                }
+            }
         }
-      }
     }
-  }
 }
-  
-  
+
+
 async function getAllTokens() {
     try {
         let items = [];

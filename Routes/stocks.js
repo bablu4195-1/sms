@@ -81,28 +81,22 @@ router.post('/addprice',auth,async (req,res)=>{
 
 router.get('/nse', auth, async (req, res) => {
     try {
-        kc.getInstruments("NSE").then(function (response) {
-            // console.log(response);
-            //send the response to the client
-           res.status(200).send(response);
-        }).catch(function (err) {
-            console.log(err);
-        });
-      
-    } catch(error ){
-        res.status(500).send(error);
+      const response = await kc.getInstruments('NSE');
+  
+      return res.status(200).send(response);
+    } catch (error) {
+      res.status(500).send(error);
     }
-});
+  });
+  
 
 router.get('/bse', auth, async (req, res) => {
     try {
-        kc.getInstruments("BSE").then(function (response) {
+        const response = await kc.getInstruments('BSE');
             // console.log(response);
             //send the response to the client
-           res.status(200).send(response);
-        }).catch(function (err) {
-            console.log(err);
-        });
+          return res.status(200).send(response);
+       
     } catch(error ){
         res.status(500).send(error);
     }
